@@ -1,0 +1,627 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Start Orchestration - Cursor Monitor</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background-color: #0E0B16;
+      color: #E0E0E0;
+      min-height: 100vh;
+      position: relative;
+    }
+    
+    body::before {
+      content: '';
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-image: url("data:image/svg+xml,%3Csvg width='160' height='160' xmlns='http://www.w3.org/2000/svg'%3E%3Cdefs%3E%3Cpattern id='gaming-bg' x='0' y='0' width='160' height='160' patternUnits='userSpaceOnUse'%3E%3Cg fill='none' stroke='%23D946EF' stroke-width='1' opacity='0.25'%3E%3Cpath d='M20 20 L50 20 L50 50 L20 50 Z M55 15 L75 15 L75 35 L55 35 Z'/%3E%3Ccircle cx='90' cy='25' r='10'/%3E%3Cpath d='M110 10 L140 10 L140 40 L110 40 Z'/%3E%3Cpath d='M15 65 L15 85 L25 85 L25 95 L15 95'/%3E%3Cpath d='M40 70 L60 70 L60 85 L50 85 L50 95'/%3E%3Ccircle cx='80' cy='75' r='8'/%3E%3Cpath d='M100 65 L120 65 L120 85 L100 85 M110 65 L110 85'/%3E%3Cpath d='M20 105 L35 105 L35 125 L20 125 M27.5 105 L27.5 125'/%3E%3Cpath d='M45 100 L60 100 L60 120 L45 120 M52.5 100 L52.5 120'/%3E%3Ccircle cx='75' cy='110' r='9'/%3E%3Cpath d='M95 100 L115 100 L110 115 L95 115 Z'/%3E%3Cpath d='M25 135 L45 135 L45 145 L30 145 L30 140'/%3E%3Ccircle cx='65' cy='140' r='6'/%3E%3Cpath d='M85 130 L105 130 L105 150 L85 150'/%3E%3Cpath d='M115 105 L135 105 L135 125 L115 125'/%3E%3Cpath d='M125 115 L135 115 M130 110 L130 120'/%3E%3C/g%3E%3C/pattern%3E%3C/defs%3E%3Crect width='160' height='160' fill='url(%23gaming-bg)'/%3E%3C/svg%3E");
+      background-repeat: repeat;
+      background-size: 160px 160px;
+      pointer-events: none;
+      z-index: 0;
+      opacity: 1;
+    }
+    
+    body > * {
+      position: relative;
+      z-index: 1;
+    }
+    
+    .page-header {
+      background: #211D2B;
+      border-bottom: 1px solid #2A2535;
+      padding: 16px 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+    
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+    
+    .pulse-dot {
+      width: 12px;
+      height: 12px;
+      background: #FFC107;
+      border-radius: 50%;
+      position: relative;
+    }
+    
+    .pulse-dot::before {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 100%;
+      height: 100%;
+      background: #FFC107;
+      border-radius: 50%;
+      animation: ping 2s cubic-bezier(0, 0, 0.2, 1) infinite;
+    }
+    
+    @keyframes ping {
+      75%, 100% {
+        transform: translate(-50%, -50%) scale(2);
+        opacity: 0;
+      }
+    }
+    
+    .header-info {
+      min-width: 0;
+      flex: 1;
+    }
+    
+    .header-label {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      color: #9E9E9E;
+      margin-bottom: 4px;
+    }
+    
+    .header-title {
+      font-size: 20px;
+      font-weight: 600;
+      color: #E0E0E0;
+    }
+    
+    .header-actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    
+    .header-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 16px;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      text-decoration: none;
+      border: 1px solid #2A2535;
+      background: #211D2B;
+      color: #E0E0E0;
+    }
+    
+    .header-btn:hover {
+      background: rgba(255, 193, 7, 0.1);
+      border-color: rgba(255, 193, 7, 0.3);
+    }
+    
+    .header-btn.primary {
+      background: rgba(255, 193, 7, 0.1);
+      border-color: #FFC107;
+      color: #FFC107;
+    }
+    
+    .header-btn.primary:hover {
+      background: rgba(255, 193, 7, 0.2);
+    }
+    
+    .header-btn svg {
+      width: 18px;
+      height: 18px;
+    }
+    
+    .main-content {
+      padding: 32px 24px;
+      max-width: 900px;
+      margin: 0 auto;
+    }
+    
+    .section {
+      background: #211D2B;
+      border-radius: 12px;
+      padding: 28px;
+      margin-bottom: 24px;
+      border: 1px solid #2A2535;
+    }
+    
+    .section-title {
+      font-size: 20px;
+      font-weight: 600;
+      color: #E0E0E0;
+      margin-bottom: 20px;
+    }
+    
+    .form-group {
+      margin-bottom: 20px;
+    }
+    
+    .form-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+    
+    @media (max-width: 600px) {
+      .form-row {
+        grid-template-columns: 1fr;
+      }
+    }
+    
+    .form-label {
+      display: block;
+      font-size: 14px;
+      font-weight: 500;
+      color: #E0E0E0;
+      margin-bottom: 8px;
+    }
+    
+    .form-label-small {
+      font-size: 12px;
+      color: #9E9E9E;
+    }
+    
+    .form-input {
+      width: 100%;
+      padding: 12px 16px;
+      background: #0E0B16;
+      border: 1px solid #2A2535;
+      border-radius: 8px;
+      color: #E0E0E0;
+      font-size: 14px;
+      transition: all 0.2s ease;
+    }
+    
+    .form-input:focus {
+      outline: none;
+      border-color: #FFC107;
+      box-shadow: 0 0 0 3px rgba(255, 193, 7, 0.15);
+    }
+    
+    .form-input::placeholder {
+      color: #9E9E9E;
+    }
+    
+    .form-textarea {
+      min-height: 200px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 13px;
+      resize: vertical;
+    }
+    
+    .form-select {
+      width: 100%;
+      padding: 12px 16px;
+      background: #0E0B16;
+      border: 1px solid #2A2535;
+      border-radius: 8px;
+      color: #E0E0E0;
+      font-size: 14px;
+      cursor: pointer;
+    }
+    
+    .form-select:focus {
+      outline: none;
+      border-color: #FFC107;
+    }
+    
+    .template-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 14px;
+      background: #211D2B;
+      border: 1px solid #2A2535;
+      border-radius: 6px;
+      color: #E0E0E0;
+      font-size: 13px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    
+    .template-btn:hover {
+      background: #2A2535;
+      border-color: #FFC107;
+    }
+    
+    .char-count {
+      font-size: 12px;
+      color: #9E9E9E;
+      margin-top: 6px;
+    }
+    
+    .mode-options {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px;
+    }
+    
+    @media (max-width: 600px) {
+      .mode-options {
+        grid-template-columns: 1fr;
+      }
+    }
+    
+    .mode-option {
+      display: flex;
+      align-items: flex-start;
+      padding: 16px;
+      background: #0E0B16;
+      border: 1px solid #2A2535;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    
+    .mode-option:hover {
+      background: rgba(255, 193, 7, 0.05);
+    }
+    
+    .mode-option.active {
+      border-color: #FFC107;
+      background: rgba(255, 193, 7, 0.1);
+    }
+    
+    .mode-option input {
+      margin-top: 4px;
+      margin-right: 12px;
+      accent-color: #FFC107;
+    }
+    
+    .mode-info h4 {
+      font-size: 14px;
+      font-weight: 500;
+      color: #E0E0E0;
+      margin-bottom: 4px;
+    }
+    
+    .mode-info p {
+      font-size: 13px;
+      color: #9E9E9E;
+    }
+    
+    .checkbox-group {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    
+    .checkbox-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      cursor: pointer;
+    }
+    
+    .checkbox-item input {
+      width: 18px;
+      height: 18px;
+      accent-color: #FFC107;
+      cursor: pointer;
+    }
+    
+    .checkbox-item label {
+      font-size: 14px;
+      color: #E0E0E0;
+      cursor: pointer;
+    }
+    
+    .action-buttons {
+      display: flex;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+    
+    .btn {
+      padding: 14px 28px;
+      border-radius: 10px;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      border: none;
+    }
+    
+    .btn-primary {
+      background: #FFC107;
+      color: #0E0B16;
+    }
+    
+    .btn-primary:hover {
+      background: #FFD54F;
+      transform: translateY(-1px);
+    }
+    
+    .btn-secondary {
+      background: transparent;
+      border: 1px solid #FFC107;
+      color: #FFC107;
+    }
+    
+    .btn-secondary:hover {
+      background: rgba(255, 193, 7, 0.1);
+    }
+    
+    .btn-outline {
+      background: transparent;
+      border: 1px solid #2A2535;
+      color: #E0E0E0;
+    }
+    
+    .btn-outline:hover {
+      background: #2A2535;
+    }
+    
+    .btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    
+    /* Responsive */
+    @media (max-width: 768px) {
+      .page-header {
+        padding: 12px 16px;
+      }
+      .header-title {
+        font-size: 16px;
+      }
+      .main-content {
+        padding: 20px 16px;
+      }
+      .section {
+        padding: 20px;
+      }
+      .header-btn span {
+        display: none;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header class="page-header">
+    <div class="header-left">
+      <div class="pulse-dot"></div>
+      <div class="header-info">
+        <p class="header-label">Cursor Cloud Monitor</p>
+        <h1 class="header-title">Start Orchestration</h1>
+      </div>
+    </div>
+    <div class="header-actions">
+      <a href="dashboard.html" class="header-btn">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/>
+        </svg>
+        <span>Dashboard</span>
+      </a>
+      <a href="orchestrations.html" class="header-btn">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+        </svg>
+        <span>Orchestrations</span>
+      </a>
+      <a href="settings.html" class="header-btn">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+        </svg>
+        <span>Settings</span>
+      </a>
+    </div>
+  </header>
+  
+  <main class="main-content">
+    <p style="color: #9E9E9E; margin-bottom: 24px; font-size: 15px;">
+      Configure autonomous task orchestration for large projects
+    </p>
+    
+    <form onsubmit="handleSubmit(event)">
+      <!-- Project Details -->
+      <section class="section">
+        <h2 class="section-title">Project Details</h2>
+        
+        <div class="form-group">
+          <label class="form-label">Repository *</label>
+          <input type="text" class="form-input" placeholder="https://github.com/user/repo or user/repo" required>
+          <p style="color: #9E9E9E; font-size: 12px; margin-top: 6px;">
+            Enter GitHub repository URL or owner/repo format
+          </p>
+        </div>
+        
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Branch</label>
+            <select class="form-select">
+              <option value="main">main</option>
+              <option value="master">master</option>
+              <option value="develop">develop</option>
+              <option value="staging">staging</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Model</label>
+            <select class="form-select">
+              <option value="">Auto (Let system choose)</option>
+              <option value="claude-4.5-opus-high-thinking">claude-4.5-opus-high-thinking</option>
+              <option value="gpt-5.2">gpt-5.2</option>
+              <option value="gpt-5.2-high">gpt-5.2-high</option>
+              <option value="gemini-3-pro">gemini-3-pro</option>
+            </select>
+          </div>
+        </div>
+        
+        <div class="form-group">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+            <label class="form-label" style="margin-bottom: 0;">Project Prompt (3000+ lines recommended) *</label>
+            <div style="display: flex; gap: 8px;">
+              <button type="button" class="template-btn" onclick="showTemplates()">
+                <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
+                </svg>
+                Templates
+              </button>
+              <button type="button" class="template-btn" onclick="enhancePrompt()">
+                <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                </svg>
+                Enhance with AI
+              </button>
+            </div>
+          </div>
+          <textarea class="form-input form-textarea" placeholder="Describe your project in detail..." required></textarea>
+          <p class="char-count">0 characters</p>
+        </div>
+      </section>
+      
+      <!-- Execution Mode -->
+      <section class="section">
+        <h2 class="section-title">Execution Mode</h2>
+        
+        <div class="mode-options">
+          <label class="mode-option active">
+            <input type="radio" name="mode" value="AUTO" checked>
+            <div class="mode-info">
+              <h4>Auto</h4>
+              <p>System decides best approach</p>
+            </div>
+          </label>
+          <label class="mode-option">
+            <input type="radio" name="mode" value="SINGLE_AGENT">
+            <div class="mode-info">
+              <h4>Single Agent</h4>
+              <p>Full prompt to one agent</p>
+            </div>
+          </label>
+          <label class="mode-option">
+            <input type="radio" name="mode" value="PIPELINE">
+            <div class="mode-info">
+              <h4>Pipeline (Sequential)</h4>
+              <p>Tasks execute one after another</p>
+            </div>
+          </label>
+          <label class="mode-option">
+            <input type="radio" name="mode" value="BATCH">
+            <div class="mode-info">
+              <h4>Batch (Parallel)</h4>
+              <p>Multiple agents work simultaneously</p>
+            </div>
+          </label>
+        </div>
+      </section>
+      
+      <!-- Advanced Options -->
+      <section class="section">
+        <h2 class="section-title">Advanced Options</h2>
+        
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Task Size</label>
+            <select class="form-select">
+              <option value="auto">Auto</option>
+              <option value="small">Small</option>
+              <option value="medium">Medium</option>
+              <option value="large">Large</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Priority</label>
+            <select class="form-select">
+              <option value="balanced">Balanced</option>
+              <option value="speed">Speed</option>
+              <option value="quality">Quality</option>
+            </select>
+          </div>
+        </div>
+        
+        <div class="form-group">
+          <label class="form-label">Max Iterations</label>
+          <input type="number" class="form-input" value="20" min="1" max="100">
+        </div>
+        
+        <div class="checkbox-group">
+          <label class="checkbox-item">
+            <input type="checkbox" checked>
+            <label>Enable Auto-Fix (automatically fix errors)</label>
+          </label>
+          <label class="checkbox-item">
+            <input type="checkbox" checked>
+            <label>Enable Testing (run tests after completion)</label>
+          </label>
+          <label class="checkbox-item">
+            <input type="checkbox" checked>
+            <label>Enable Validation (validate each task)</label>
+          </label>
+        </div>
+      </section>
+      
+      <!-- Action Buttons -->
+      <div class="action-buttons">
+        <button type="button" class="btn btn-secondary" onclick="dryRun()">
+          🔍 Dry Run
+        </button>
+        <button type="submit" class="btn btn-primary">
+          Start Orchestration
+        </button>
+        <a href="cloud-agents.html" class="btn btn-outline">
+          Cancel
+        </a>
+      </div>
+    </form>
+  </main>
+  
+  <script>
+    // Mode selection
+    document.querySelectorAll('.mode-option').forEach(option => {
+      option.addEventListener('click', function() {
+        document.querySelectorAll('.mode-option').forEach(o => o.classList.remove('active'));
+        this.classList.add('active');
+      });
+    });
+    
+    function handleSubmit(event) {
+      event.preventDefault();
+      alert('Orchestration would start here!\n\n(This is a demo - no actual orchestration will be started)');
+    }
+    
+    function dryRun() {
+      alert('Dry Run would analyze your prompt and estimate tasks.\n\n(This is a demo)');
+    }
+    
+    function showTemplates() {
+      alert('Template selector would open here.\n\n(This is a demo)');
+    }
+    
+    function enhancePrompt() {
+      alert('AI would enhance your prompt for better results.\n\n(This is a demo)');
+    }
+  </script>
+</body>
+</html>
