@@ -1,0 +1,1015 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Orchestration Details - Cursor Monitor</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    /* Core Variables */
+    :root {
+      --bg-primary: #0E0B16;
+      --bg-secondary: #211D2B;
+      --bg-tertiary: #2A2535;
+      --accent-primary: #FFC107;
+      --accent-secondary: #D946EF;
+      --text-primary: #E0E0E0;
+      --text-secondary: #9E9E9E;
+      --border-color: #2A2535;
+      --success-color: #10B981;
+      --warning-color: #F59E0B;
+      --danger-color: #EF4444;
+      --sidebar-width: 280px;
+      --header-height: 70px;
+    }
+
+    /* Reset & Base */
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, sans-serif;
+      background-color: var(--bg-primary);
+      color: var(--text-primary);
+      display: flex;
+      min-height: 100vh;
+      position: relative;
+      overflow-x: hidden;
+    }
+
+    /* Background Pattern */
+    body::before {
+      content: '';
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-image: url("data:image/svg+xml,%3Csvg width='160' height='160' xmlns='http://www.w3.org/2000/svg'%3E%3Cdefs%3E%3Cpattern id='gaming-bg' x='0' y='0' width='160' height='160' patternUnits='userSpaceOnUse'%3E%3Cg fill='none' stroke='%23D946EF' stroke-width='1' opacity='0.25'%3E%3Cpath d='M20 20 L50 20 L50 50 L20 50 Z M55 15 L75 15 L75 35 L55 35 Z'/%3E%3Ccircle cx='90' cy='25' r='10'/%3E%3Cpath d='M110 10 L140 10 L140 40 L110 40 Z'/%3E%3Cpath d='M15 65 L15 85 L25 85 L25 95 L15 95'/%3E%3Cpath d='M40 70 L60 70 L60 85 L50 85 L50 95'/%3E%3Ccircle cx='80' cy='75' r='8'/%3E%3Cpath d='M100 65 L120 65 L120 85 L100 85 M110 65 L110 85'/%3E%3Cpath d='M20 105 L35 105 L35 125 L20 125 M27.5 105 L27.5 125'/%3E%3Cpath d='M45 100 L60 100 L60 120 L45 120 M52.5 100 L52.5 120'/%3E%3Ccircle cx='75' cy='110' r='9'/%3E%3Cpath d='M95 100 L115 100 L110 115 L95 115 Z'/%3E%3Cpath d='M25 135 L45 135 L45 145 L30 145 L30 140'/%3E%3Ccircle cx='65' cy='140' r='6'/%3E%3Cpath d='M85 130 L105 130 L105 150 L85 150'/%3E%3Cpath d='M115 105 L135 105 L135 125 L115 125'/%3E%3Cpath d='M125 115 L135 115 M130 110 L130 120'/%3E%3C/g%3E%3C/pattern%3E%3C/defs%3E%3Crect width='160' height='160' fill='url(%23gaming-bg)'/%3E%3C/svg%3E");
+      background-repeat: repeat;
+      background-size: 160px 160px;
+      pointer-events: none;
+      z-index: 0;
+      opacity: 1;
+    }
+
+    body > * {
+      position: relative;
+      z-index: 1;
+    }
+
+    /* Sidebar */
+    .sidebar {
+      width: var(--sidebar-width);
+      background: var(--bg-secondary);
+      padding: 20px;
+      border-right: 1px solid var(--border-color);
+      flex-shrink: 0;
+      display: flex;
+      flex-direction: column;
+      position: fixed;
+      height: 100vh;
+      z-index: 100;
+      transition: transform 0.3s ease;
+    }
+
+    .logo {
+      font-size: 24px;
+      font-weight: 700;
+      color: var(--accent-primary);
+      margin-bottom: 30px;
+      padding: 10px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      text-decoration: none;
+    }
+
+    .logo svg {
+      width: 32px;
+      height: 32px;
+    }
+
+    .nav {
+      flex: 1;
+    }
+
+    .nav-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 14px 16px;
+      margin-bottom: 6px;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: all 0.2s;
+      color: var(--text-secondary);
+      text-decoration: none;
+      font-weight: 500;
+    }
+
+    .nav-item:hover, .nav-item.active {
+      background: rgba(255, 193, 7, 0.1);
+      color: var(--accent-primary);
+    }
+
+    .nav-item svg {
+      width: 20px;
+      height: 20px;
+      flex-shrink: 0;
+    }
+
+    .sidebar-divider {
+      height: 1px;
+      background: var(--border-color);
+      margin: 20px 0;
+    }
+
+    .active-agents-section {
+      margin-top: auto;
+    }
+
+    .active-agents-section h3 {
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--text-secondary);
+      margin-bottom: 16px;
+      padding: 0 10px;
+    }
+
+    .agent-status-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .agent-status-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 12px;
+      border-radius: 8px;
+      background: rgba(255, 193, 7, 0.05);
+      transition: all 0.2s;
+    }
+
+    .agent-status-item:hover {
+      background: rgba(255, 193, 7, 0.1);
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .status-dot.running {
+      background: var(--success-color);
+      box-shadow: 0 0 8px var(--success-color);
+    }
+
+    .status-dot.idle {
+      background: var(--text-secondary);
+    }
+
+    .status-dot.error {
+      background: var(--danger-color);
+      box-shadow: 0 0 8px var(--danger-color);
+    }
+
+    .agent-name {
+      font-size: 13px;
+      color: var(--text-primary);
+      font-weight: 500;
+    }
+
+    /* Main Content */
+    .main {
+      flex: 1;
+      margin-left: var(--sidebar-width);
+      padding: 30px;
+      overflow-x: hidden;
+      min-height: 100vh;
+    }
+
+    /* Header */
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 30px;
+      flex-wrap: wrap;
+      gap: 16px;
+      background: var(--bg-secondary);
+      padding: 20px 30px;
+      border-radius: 16px;
+      border: 1px solid var(--border-color);
+    }
+
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .back-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 46px;
+      height: 46px;
+      border-radius: 12px;
+      background: var(--bg-tertiary);
+      border: 1px solid var(--border-color);
+      color: var(--text-primary);
+      transition: all 0.2s ease;
+      text-decoration: none;
+    }
+
+    .back-btn:hover {
+      background: rgba(255, 193, 7, 0.1);
+      border-color: var(--accent-primary);
+      color: var(--accent-primary);
+    }
+
+    .back-btn svg {
+      width: 20px;
+      height: 20px;
+    }
+
+    .header-info h1 {
+      font-size: 24px;
+      color: var(--text-primary);
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+
+    .header-label {
+      font-size: 13px;
+      color: var(--text-secondary);
+    }
+
+    .header-actions {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .header-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 12px 20px;
+      border-radius: 10px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      text-decoration: none;
+      border: 1px solid var(--border-color);
+      background: var(--bg-secondary);
+      color: var(--text-primary);
+    }
+
+    .header-btn:hover {
+      background: rgba(255, 193, 7, 0.1);
+      border-color: rgba(255, 193, 7, 0.3);
+    }
+
+    .header-btn.danger {
+      border-color: var(--danger-color);
+      color: var(--danger-color);
+    }
+
+    .header-btn.danger:hover {
+      background: rgba(239, 68, 68, 0.1);
+    }
+
+    .header-btn.primary {
+      background: var(--accent-primary);
+      border-color: var(--accent-primary);
+      color: var(--bg-primary);
+    }
+
+    .header-btn.primary:hover {
+      background: #FFD54F;
+    }
+
+    .header-btn svg {
+      width: 18px;
+      height: 18px;
+    }
+
+    /* Overview Section */
+    .overview-section {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      border-radius: 16px;
+      padding: 28px;
+      margin-bottom: 24px;
+    }
+
+    .overview-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 24px;
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+
+    .overview-title h2 {
+      font-size: 24px;
+      font-weight: 600;
+      color: var(--text-primary);
+      margin-bottom: 8px;
+    }
+
+    .overview-meta {
+      display: flex;
+      gap: 20px;
+      flex-wrap: wrap;
+      font-size: 14px;
+      color: var(--text-secondary);
+    }
+
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 10px 20px;
+      border-radius: 20px;
+      font-size: 14px;
+      font-weight: 500;
+    }
+
+    .status-badge.active {
+      background: rgba(59, 130, 246, 0.15);
+      color: #3b82f6;
+    }
+
+    .status-badge.completed {
+      background: rgba(16, 185, 129, 0.15);
+      color: var(--success-color);
+    }
+
+    .status-badge.error {
+      background: rgba(239, 68, 68, 0.15);
+      color: var(--danger-color);
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: currentColor;
+    }
+
+    .status-badge.active .status-dot {
+      animation: pulse 1.5s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+
+    .progress-section {
+      margin-bottom: 24px;
+    }
+
+    .progress-header {
+      display: flex;
+      justify-content: space-between;
+      font-size: 14px;
+      color: var(--text-secondary);
+      margin-bottom: 10px;
+    }
+
+    .progress-bar {
+      height: 12px;
+      background: var(--bg-tertiary);
+      border-radius: 6px;
+      overflow: hidden;
+    }
+
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--accent-primary), #FFD54F);
+      border-radius: 6px;
+      transition: width 0.3s ease;
+    }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+    }
+
+    @media (max-width: 768px) {
+      .stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
+    .stat-box {
+      background: var(--bg-primary);
+      border-radius: 12px;
+      padding: 20px;
+      text-align: center;
+    }
+
+    .stat-box h4 {
+      font-size: 13px;
+      color: var(--text-secondary);
+      margin-bottom: 8px;
+      font-weight: 500;
+    }
+
+    .stat-box .value {
+      font-size: 28px;
+      font-weight: 700;
+      color: var(--accent-primary);
+    }
+
+    /* Tasks Section */
+    .tasks-section {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      border-radius: 16px;
+      padding: 28px;
+      margin-bottom: 24px;
+    }
+
+    .section-title {
+      font-size: 20px;
+      font-weight: 600;
+      color: var(--text-primary);
+      margin-bottom: 20px;
+    }
+
+    .task-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .task-item {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      padding: 16px 20px;
+      background: var(--bg-primary);
+      border-radius: 12px;
+      border: 1px solid var(--border-color);
+      transition: all 0.2s ease;
+    }
+
+    .task-item:hover {
+      border-color: var(--accent-primary);
+    }
+
+    .task-item.completed {
+      opacity: 0.7;
+    }
+
+    .task-status {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      flex-shrink: 0;
+    }
+
+    .task-status.completed {
+      background: rgba(16, 185, 129, 0.2);
+      color: var(--success-color);
+    }
+
+    .task-status.active {
+      background: rgba(59, 130, 246, 0.2);
+      color: #3b82f6;
+    }
+
+    .task-status.pending {
+      background: rgba(245, 158, 11, 0.2);
+      color: var(--warning-color);
+    }
+
+    .task-status.error {
+      background: rgba(239, 68, 68, 0.2);
+      color: var(--danger-color);
+    }
+
+    .task-info {
+      flex: 1;
+    }
+
+    .task-info h4 {
+      font-size: 15px;
+      font-weight: 500;
+      color: var(--text-primary);
+      margin-bottom: 4px;
+    }
+
+    .task-info p {
+      font-size: 13px;
+      color: var(--text-secondary);
+    }
+
+    .task-agent {
+      font-size: 13px;
+      color: var(--accent-primary);
+      background: rgba(255, 193, 7, 0.1);
+      padding: 6px 14px;
+      border-radius: 6px;
+      font-weight: 500;
+    }
+
+    /* Logs Section */
+    .logs-section {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      border-radius: 16px;
+      padding: 28px;
+    }
+
+    .logs-container {
+      background: var(--bg-primary);
+      border-radius: 12px;
+      padding: 20px;
+      max-height: 400px;
+      overflow-y: auto;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 13px;
+    }
+
+    .log-entry {
+      padding: 10px 0;
+      border-bottom: 1px solid var(--border-color);
+      color: var(--text-secondary);
+    }
+
+    .log-entry:last-child {
+      border-bottom: none;
+    }
+
+    .log-time {
+      color: var(--text-secondary);
+      margin-left: 12px;
+    }
+
+    .log-info {
+      color: #3b82f6;
+    }
+
+    .log-success {
+      color: var(--success-color);
+    }
+
+    .log-error {
+      color: var(--danger-color);
+    }
+
+    /* Mobile Menu Toggle */
+    .mobile-menu-toggle {
+      display: none;
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      z-index: 200;
+      width: 46px;
+      height: 46px;
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      cursor: pointer;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .mobile-menu-toggle svg {
+      width: 24px;
+      height: 24px;
+      color: var(--text-primary);
+    }
+
+    .sidebar-overlay {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.5);
+      z-index: 99;
+    }
+
+    /* Responsive */
+    @media (max-width: 1024px) {
+      .sidebar {
+        width: 260px;
+        padding: 16px;
+      }
+    }
+
+    @media (max-width: 768px) {
+      .sidebar {
+        transform: translateX(-100%);
+      }
+
+      .sidebar.active {
+        transform: translateX(0);
+      }
+
+      .sidebar-overlay.active {
+        display: block;
+      }
+
+      .mobile-menu-toggle {
+        display: flex;
+      }
+
+      .main {
+        margin-left: 0;
+        padding: 80px 20px 20px;
+      }
+
+      .header {
+        flex-direction: column;
+        align-items: flex-start;
+        padding: 20px;
+      }
+
+      .header-left {
+        width: 100%;
+      }
+
+      .header-actions {
+        width: 100%;
+        justify-content: flex-start;
+      }
+
+      .overview-header {
+        flex-direction: column;
+      }
+
+      .task-item {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 12px;
+      }
+
+      .task-agent {
+        align-self: flex-start;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .main {
+        padding: 70px 16px 16px;
+      }
+
+      .overview-title h2 {
+        font-size: 20px;
+      }
+
+      .section-title {
+        font-size: 18px;
+      }
+
+      .stat-box .value {
+        font-size: 24px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- Mobile Menu Toggle -->
+  <button class="mobile-menu-toggle" onclick="toggleSidebar()">
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
+    </svg>
+  </button>
+
+  <!-- Sidebar Overlay -->
+  <div class="sidebar-overlay" onclick="toggleSidebar()"></div>
+
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <a href="index.html" class="logo">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+        <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+      </svg>
+      Cursor Monitor
+    </a>
+    <nav class="nav">
+      <a href="dashboard.html" class="nav-item">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/>
+        </svg>
+        Dashboard
+      </a>
+      <a href="cloud-agents.html" class="nav-item">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z"/>
+        </svg>
+        Cloud Agents
+      </a>
+      <a href="orchestrations.html" class="nav-item active">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/>
+        </svg>
+        Orchestrations
+      </a>
+      <a href="repository-profiles.html" class="nav-item">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/>
+        </svg>
+        Repository Profiles
+      </a>
+      <a href="prompt-templates.html" class="nav-item">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z"/>
+        </svg>
+        Prompt Templates
+      </a>
+      <a href="settings.html" class="nav-item">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+        </svg>
+        Settings
+      </a>
+    </nav>
+    <div class="sidebar-divider"></div>
+    <div class="active-agents-section">
+      <h3>Active Agents</h3>
+      <div class="agent-status-list">
+        <div class="agent-status-item">
+          <span class="status-dot running"></span>
+          <span class="agent-name">Reviewer-01</span>
+        </div>
+        <div class="agent-status-item">
+          <span class="status-dot running"></span>
+          <span class="agent-name">DevOps-AI</span>
+        </div>
+        <div class="agent-status-item">
+          <span class="status-dot idle"></span>
+          <span class="agent-name">DocGen-v2</span>
+        </div>
+        <div class="agent-status-item">
+          <span class="status-dot running"></span>
+          <span class="agent-name">Tester-Pro</span>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Main Content -->
+  <main class="main">
+    <div class="header">
+      <div class="header-left">
+        <a href="orchestrations.html" class="back-btn">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+          </svg>
+        </a>
+        <div class="header-info">
+          <h1>Orchestration Details</h1>
+          <span class="header-label">Project Alpha - Feature Development</span>
+        </div>
+      </div>
+      <div class="header-actions">
+        <button class="header-btn" onclick="downloadLogs()">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+          </svg>
+          <span>Export</span>
+        </button>
+        <button class="header-btn danger" onclick="stopOrchestration()">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+          </svg>
+          <span>Stop</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Overview Section -->
+    <section class="overview-section">
+      <div class="overview-header">
+        <div class="overview-title">
+          <h2>Project Alpha - Feature Development</h2>
+          <div class="overview-meta">
+            <span>📁 myorg/project-alpha</span>
+            <span>🌿 main</span>
+            <span>📅 Started 2 hours ago</span>
+            <span>⏱️ Duration: 2h 34m</span>
+          </div>
+        </div>
+        <span class="status-badge active">
+          <span class="status-dot"></span>
+          Active
+        </span>
+      </div>
+
+      <div class="progress-section">
+        <div class="progress-header">
+          <span>Overall Progress</span>
+          <span>67% (8/12 tasks completed)</span>
+        </div>
+        <div class="progress-bar">
+          <div class="progress-fill" style="width: 67%;"></div>
+        </div>
+      </div>
+
+      <div class="stats-grid">
+        <div class="stat-box">
+          <h4>Tasks Completed</h4>
+          <div class="value">8</div>
+        </div>
+        <div class="stat-box">
+          <h4>Active Tasks</h4>
+          <div class="value">3</div>
+        </div>
+        <div class="stat-box">
+          <h4>Files Modified</h4>
+          <div class="value">24</div>
+        </div>
+        <div class="stat-box">
+          <h4>Commits Made</h4>
+          <div class="value">12</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Tasks Section -->
+    <section class="tasks-section">
+      <h2 class="section-title">Task Execution</h2>
+
+      <div class="task-list">
+        <div class="task-item completed">
+          <div class="task-status completed">✓</div>
+          <div class="task-info">
+            <h4>Initialize project structure</h4>
+            <p>Created initial directory structure and configuration files</p>
+          </div>
+          <span class="task-agent">Code Review</span>
+        </div>
+
+        <div class="task-item completed">
+          <div class="task-status completed">✓</div>
+          <div class="task-info">
+            <h4>Implement authentication module</h4>
+            <p>Built user authentication with JWT tokens</p>
+          </div>
+          <span class="task-agent">DevOps</span>
+        </div>
+
+        <div class="task-item completed">
+          <div class="task-status completed">✓</div>
+          <div class="task-info">
+            <h4>Create database schema</h4>
+            <p>Designed and implemented database models</p>
+          </div>
+          <span class="task-agent">Documentation</span>
+        </div>
+
+        <div class="task-item completed">
+          <div class="task-status completed">✓</div>
+          <div class="task-info">
+            <h4>Write unit tests</h4>
+            <p>Implemented comprehensive test coverage</p>
+          </div>
+          <span class="task-agent">Testing</span>
+        </div>
+
+        <div class="task-item active">
+          <div class="task-status active">⟳</div>
+          <div class="task-info">
+            <h4>Build REST API endpoints</h4>
+            <p>Creating CRUD operations for all resources</p>
+          </div>
+          <span class="task-agent">Code Review</span>
+        </div>
+
+        <div class="task-item active">
+          <div class="task-status active">⟳</div>
+          <div class="task-info">
+            <h4>Implement frontend components</h4>
+            <p>Building UI components with React</p>
+          </div>
+          <span class="task-agent">DevOps</span>
+        </div>
+
+        <div class="task-item active">
+          <div class="task-status active">⟳</div>
+          <div class="task-info">
+            <h4>Setup CI/CD pipeline</h4>
+            <p>Configuring GitHub Actions for deployment</p>
+          </div>
+          <span class="task-agent">Testing</span>
+        </div>
+
+        <div class="task-item pending">
+          <div class="task-status pending">○</div>
+          <div class="task-info">
+            <h4>Integration testing</h4>
+            <p>Testing all components together</p>
+          </div>
+          <span class="task-agent">Testing</span>
+        </div>
+
+        <div class="task-item pending">
+          <div class="task-status pending">○</div>
+          <div class="task-info">
+            <h4>Deploy to staging</h4>
+            <p>Deploy application to staging environment</p>
+          </div>
+          <span class="task-agent">DevOps</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Logs Section -->
+    <section class="logs-section">
+      <h2 class="section-title">Live Logs</h2>
+
+      <div class="logs-container">
+        <div class="log-entry">
+          <span class="log-info">[INFO]</span> Starting orchestration for myorg/project-alpha
+          <span class="log-time">14:23:45</span>
+        </div>
+        <div class="log-entry">
+          <span class="log-info">[INFO]</span> Cloning repository...
+          <span class="log-time">14:23:46</span>
+        </div>
+        <div class="log-entry">
+          <span class="log-success">[SUCCESS]</span> Repository cloned successfully
+          <span class="log-time">14:23:52</span>
+        </div>
+        <div class="log-entry">
+          <span class="log-info">[INFO]</span> Starting task: Initialize project structure
+          <span class="log-time">14:23:53</span>
+        </div>
+        <div class="log-entry">
+          <span class="log-success">[SUCCESS]</span> Task completed: Initialize project structure
+          <span class="log-time">14:24:15</span>
+        </div>
+        <div class="log-entry">
+          <span class="log-info">[INFO]</span> Starting task: Implement authentication module
+          <span class="log-time">14:24:16</span>
+        </div>
+        <div class="log-entry">
+          <span class="log-success">[SUCCESS]</span> Task completed: Implement authentication module
+          <span class="log-time">14:45:32</span>
+        </div>
+        <div class="log-entry">
+          <span class="log-info">[INFO]</span> Starting task: Build REST API endpoints
+          <span class="log-time">14:45:33</span>
+        </div>
+        <div class="log-entry">
+          <span class="log-info">[INFO]</span> Processing request: GET /api/users
+          <span class="log-time">14:56:18</span>
+        </div>
+        <div class="log-entry">
+          <span class="log-info">[INFO]</span> Processing request: POST /api/auth/login
+          <span class="log-time">14:57:22</span>
+        </div>
+        <div class="log-entry">
+          <span class="log-info">[INFO]</span> Task in progress: Build REST API endpoints (67%)
+          <span class="log-time">15:02:45</span>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    function stopOrchestration() {
+      if (confirm('Are you sure you want to stop this orchestration?')) {
+        alert('Orchestration would be stopped here.\n\n(This is a demo)');
+      }
+    }
+
+    function downloadLogs() {
+      alert('Logs would be downloaded as a file.\n\n(This is a demo)');
+    }
+
+    function toggleSidebar() {
+      const sidebar = document.querySelector('.sidebar');
+      const overlay = document.querySelector('.sidebar-overlay');
+      sidebar.classList.toggle('active');
+      overlay.classList.toggle('active');
+    }
+  </script>
+</body>
+</html>
